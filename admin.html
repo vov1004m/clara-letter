@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>도착한 편지 · 관리자</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root{--paper:#EFE9DD;--card:#FFFCF6;--ink:#2B2A33;--muted:#5E5A55;--line:#D8CFC0;--field:#C9BFAF;--accent:#7A2E3A}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Noto Sans KR',sans-serif}
+.wrap{max-width:560px;margin:0 auto;min-height:100vh}
+.serif{font-family:'Nanum Myeongjo',serif}
+header{padding:40px 24px 20px;background:var(--ink);color:#F6F1E7;display:flex;flex-direction:column;gap:6px}
+header p{margin:0;font-size:13px;color:#C9BFAF}
+h1{margin:0;font-weight:800;font-size:26px}
+.pad{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+input[type=password]{height:52px;padding:0 14px;border:1px solid var(--field);border-radius:8px;background:var(--card);font-size:16px;font-family:inherit;width:100%}
+.btn{height:52px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn.sub{background:transparent;color:var(--ink);border:1px solid var(--field);height:44px;font-size:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:40px;padding:0 14px;border-radius:20px;font-size:14px;font-family:inherit;cursor:pointer;background:var(--card);color:var(--ink);border:1px solid var(--field)}
+.chip[aria-pressed="true"]{background:var(--ink);color:#F6F1E7;border-color:var(--ink);font-weight:700}
+.stat{margin:0;font-size:13px;color:var(--muted)}
+.list{padding:0 24px 48px;display:flex;flex-direction:column;gap:12px}
+article{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+article.on{border:2px solid var(--accent)}
+.top,.bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.tag{font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;background:var(--paper);color:var(--ink)}
+.text{margin:0;font-family:'Nanum Myeongjo',serif;font-size:15px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.toname{margin:0;font-family:'Nanum Myeongjo',serif;font-weight:700;font-size:15px}
+.pick{min-height:36px;padding:0 14px;border-radius:18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--accent);border:1px solid var(--accent)}
+article.on .pick{background:var(--accent);color:#fff}
+.error{margin:0;color:#9B1C1C;font-size:14px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<p>관리자 전용</p>
+<h1 class="serif">도착한 편지</h1>
+<p>〈클라라에게, 편지로 듣는 슈만〉 2026.11.12</p>
+</header>
+
+<form id="login" class="pad">
+<label for="pw" style="font-weight:700">비밀번호</label>
+<input id="pw" type="password" autocomplete="current-password" required>
+<p class="error" id="loginErr" role="alert" hidden>비밀번호가 맞지 않아요.</p>
+<button class="btn" type="submit">들어가기</button>
+</form>
+
+<div id="app" hidden>
+<div class="pad">
+<div class="chips" id="filters"></div>
+<button class="btn" type="button" id="draw">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3h5v5"></path><path d="M4 20L21 3"></path><path d="M21 16v5h-5"></path><path d="M15 15l6 6"></path><path d="M4 4l5 5"></path></svg>
+무작위로 한 통 뽑기</button>
+<button class="btn sub" type="button" id="refresh">새로 고침</button>
+<p class="stat" id="stat"></p>
+<p class="error" id="appErr" role="alert" hidden></p>
+</div>
+<div class="list" id="list"></div>
+</div>
+</div>
+<script>
+(function(){
+  var URL_ = 'https://vdgpsejlagxnrilcnqag.supabase.co/rest/v1/rpc/';
+  var KEY = 'sb_publishable_czh60ItKuAVBkj3TAFBKXw_-Kz2QseH';
+  var LABELS = ['전체','연인','부모님','오래전 친구','그리운 사람','나에게','기타'];
+  var pw = '', letters = [], filter = '전체';
+  var $ = function(id){ return document.getElementById(id); };
+
+  function rpc(name, args){
+    return fetch(URL_ + name, {
+      method:'POST',
+      headers:{'apikey':KEY,'Content-Type':'application/json'},
+      body: JSON.stringify(args)
+    }).then(function(r){ if(!r.ok) throw new Error(r.status); return r.status === 204 ? null : r.json(); });
+  }
+
+  function load(){
+    return rpc('klara_admin_list', {pw:pw}).then(function(rows){ letters = rows || []; render(); });
+  }
+
+  function el(tag, cls, text){ var e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+
+  function fmt(ts){
+    var d = new Date(ts);
+    return d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Seoul'});
+  }
+
+  function shown(){ return letters.filter(function(l){ return filter === '전체' || l.recipient === filter; }); }
+
+  function render(){
+    var f = $('filters'); f.innerHTML = '';
+    LABELS.forEach(function(lab){
+      var n = lab === '전체' ? letters.length : letters.filter(function(l){ return l.recipient === lab; }).length;
+      if (lab !== '전체' && n === 0) return;
+      var b = el('button','chip', lab + ' ' + n);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(filter === lab));
+      b.onclick = function(){ filter = lab; render(); };
+      f.appendChild(b);
+    });
+    var list = $('list'); list.innerHTML = '';
+    var s = shown();
+    s.forEach(function(l){
+      var a = el('article', l.selected ? 'on' : '');
+      var top = el('div','top');
+      top.appendChild(el('span','tag', l.recipient + '에게'));
+      top.appendChild(el('span', null, fmt(l.created_at)));
+      a.appendChild(top);
+      if (l.to_name) a.appendChild(el('p','toname', l.to_name));
+      a.appendChild(el('p','text', l.body));
+      var bot = el('div','bottom');
+      bot.appendChild(el('span', null, '보낸 사람: ' + l.from_name));
+      var p = el('button','pick', l.selected ? '선정됨' : '선정하기');
+      p.type = 'button';
+      p.onclick = function(){ setSel(l, !l.selected); };
+      bot.appendChild(p);
+      a.appendChild(bot);
+      list.appendChild(a);
+    });
+    var picked = letters.filter(function(l){ return l.selected; }).length;
+    $('stat').textContent = '전체 ' + letters.length + '통 · 선정 ' + picked + '통 · 표시 중 ' + s.length + '통';
+  }
+
+  function setSel(l, val){
+    $('appErr').hidden = true;
+    rpc('klara_admin_select', {pw:pw, letter_id:l.id, val:val}).then(function(){ l.selected = val; render(); })
+      .catch(function(){ $('appErr').textContent = '저장하지 못했어요. 다시 시도해 주세요.'; $('appErr').hidden = false; });
+  }
+
+  $('draw').onclick = function(){
+    var pool = shown().filter(function(l){ return !l.selected; });
+    if (!pool.length) { $('appErr').textContent = '뽑을 편지가 없어요.'; $('appErr').hidden = false; return; }
+    var one = pool[Math.floor(Math.random() * pool.length)];
+    setSel(one, true);
+  };
+  $('refresh').onclick = function(){ load().catch(function(){}); };
+
+  function enter(p){
+    pw = p;
+    return load().then(function(){
+      try { sessionStorage.setItem('klara_pw', p); } catch(e){}
+      $('login').hidden = true; $('app').hidden = false;
+    });
+  }
+
+  $('login').addEventListener('submit', function(e){
+    e.preventDefault();
+    $('loginErr').hidden = true;
+    enter($('pw').value).catch(function(){ $('loginErr').hidden = false; });
+  });
+
+  try { var saved = sessionStorage.getItem('klara_pw'); if (saved) enter(saved).catch(function(){}); } catch(e){}
+})();
+</script>
+</body>
+</html>
