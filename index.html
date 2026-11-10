@@ -103,6 +103,12 @@ footer p{margin:0}
 </div>
 
 <div class="field">
+<label class="q" for="song">신청곡 <span style="font-weight:400;color:var(--muted)">(선택)</span></label>
+<input id="song" type="text" maxlength="100" placeholder="예: 슈만 트로이메라이, 추억이 담긴 노래" autocomplete="off">
+<p class="hint">신청곡은 피아노 트리오 편성과 공연 흐름에 맞춰 선곡하기 때문에, 사연에 더 어울리는 다른 곡으로 연주될 수 있어요.</p>
+</div>
+
+<div class="field">
 <label class="q" for="fromName">보내는 사람</label>
 <input id="fromName" type="text" maxlength="40" placeholder="이름 또는 닉네임" autocomplete="nickname" required>
 <p class="hint">무대에서 사연을 소개할 때 이 이름으로 불러드려요.</p>
@@ -176,6 +182,7 @@ footer p{margin:0}
         recipient: recipient,
         to_name: $('toName').value.trim() || null,
         body: body.value.trim(),
+        request_song: $('song').value.trim() || null,
         from_name: fromName.value.trim(),
         consent: true
       })
@@ -194,7 +201,7 @@ footer p{margin:0}
   });
 
   $('again').addEventListener('click', function(){
-    form.reset(); $('toName').value=''; body.value=''; fromName.value='';
+    form.reset(); $('toName').value=''; $('song').value=''; body.value=''; fromName.value='';
     update();
     $('doneView').hidden = true; $('formView').hidden = false;
     window.scrollTo(0,0);
