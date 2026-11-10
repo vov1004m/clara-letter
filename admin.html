@@ -29,6 +29,7 @@ article.on{border:2px solid var(--accent)}
 .top,.bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .tag{font-size:12px;font-weight:700;padding:4px 10px;border-radius:12px;background:var(--paper);color:var(--ink)}
 .text{margin:0;font-family:'Nanum Myeongjo',serif;font-size:15px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.song{margin:0;font-size:14px;font-weight:700;color:var(--accent)}
 .toname{margin:0;font-family:'Nanum Myeongjo',serif;font-weight:700;font-size:15px}
 .pick{min-height:36px;padding:0 14px;border-radius:18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;background:transparent;color:var(--accent);border:1px solid var(--accent)}
 article.on .pick{background:var(--accent);color:#fff}
@@ -114,6 +115,7 @@ article.on .pick{background:var(--accent);color:#fff}
       a.appendChild(top);
       if (l.to_name) a.appendChild(el('p','toname', l.to_name));
       a.appendChild(el('p','text', l.body));
+      if (l.request_song) a.appendChild(el('p','song', '♪ 신청곡: ' + l.request_song));
       var bot = el('div','bottom');
       bot.appendChild(el('span', null, '보낸 사람: ' + l.from_name));
       var p = el('button','pick', l.selected ? '선정됨' : '선정하기');
